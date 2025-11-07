@@ -1,0 +1,123 @@
+@page "/devices"
+@using SmartHomeMonitor.Models
+@using SmartHomeMonitor.Services
+@inject IRepository<Device> DeviceRepository
+
+<PageTitle>Devices - Smart Home Monitor</PageTitle>
+
+<h1>My Devices</h1>
+<p class="lead">Manage your registered environmental sensors</p>
+
+<div class="row mt-3">
+    <div class="col-12">
+        <button class="btn btn-primary mb-3" @onclick="AddTestDevice">
+            Add Test Device
+        </button>
+    </div>
+</div>
+
+@if (!string.IsNullOrEmpty(statusMessage))
+{
+    <div class="alert alert-info">
+        @statusMessage
+    </div>
+}
+
+@if (devices == null)
+{
+    <p><em>Loading devices...</em></p>
+}
+else if (devices.Count == 0)
+{
+    <div class="alert alert-warning">
+        No devices registered yet. Click "Add Test Device" to add one!
+    </div>
+}
+else
+{
+    <h3>Registered Devices (@devices.Count)</h3>
+    <div class="table-responsive">
+        <table class="table table-striped table-hover">
+            <thead class="table-dark">
+                <tr>
+                    <th>Device ID</th>
+                    <th>Name</th>
+                    <th>Location</th>
+                    <th>Type</th>
+                    <th>Status</th>
+                    <th>Registered</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var device in devices)
+                {
+                    <tr>
+                        <td>@device.DeviceId</td>
+                        <td><strong>@device.DeviceName</strong></td>
+                        <td>@device.Location</td>
+                        <td>@device.DeviceType</td>
+                        <td>
+                            @if (device.IsActive)
+                            {
+                                <span class="badge bg-success">Active</span>
+                            }
+                            else
+                            {
+                                <span class="badge bg-secondary">Inactive</span>
+                            }
+                        </td>
+                        <td>@device.RegisteredAt.ToString("MMM dd, yyyy")</td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+}
+
+@code {
+    private List<Device>? devices;
+    private string? statusMessage;
+    private int deviceCounter = 1;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadDevices();
+    }
+
+    private async Task LoadDevices()
+    {
+        devices = await DeviceRepository.GetAllAsync();
+        statusMessage = null;
+    }
+
+    private async Task AddTestDevice()
+    {
+        var newDevice = new Device
+        {
+            UserId = 1,
+            DeviceName = $"Sensor-{deviceCounter:D3}",
+            Location = GetRandomLocation(),
+            DeviceType = GetRandomDeviceType(),
+            IsActive = true,
+            RegisteredAt = DateTime.Now
+        };
+
+        await DeviceRepository.InsertAsync(newDevice);
+        await LoadDevices();
+
+        deviceCounter++;
+        statusMessage = $"Device '{newDevice.DeviceName}' added successfully!";
+    }
+
+    private string GetRandomLocation()
+    {
+        var locations = new[] { "Living Room", "Bedroom", "Kitchen", "Garage", "Office", "Basement" };
+        return locations[Random.Shared.Next(locations.Length)];
+    }
+
+    private string GetRandomDeviceType()
+    {
+        var types = new[] { "Temperature Sensor", "Humidity Sensor", "Air Quality Monitor", "Multi-Sensor" };
+        return types[Random.Shared.Next(types.Length)];
+    }
+}

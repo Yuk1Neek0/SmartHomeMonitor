@@ -1,0 +1,116 @@
+@page "/"
+@using SmartHomeMonitor.Models
+@using SmartHomeMonitor.Services
+@inject IRepository<SensorReading> SensorRepository
+@inject IRepository<Device> DeviceRepository
+
+<PageTitle>Dashboard - Smart Home Monitor</PageTitle>
+
+<h1>Smart Home Environmental Monitor</h1>
+<p class="lead">Monitor your home's environmental conditions with real-time sensor data</p>
+
+<div class="row mt-4">
+    <div class="col-md-4">
+        <div class="card text-white bg-primary mb-3">
+            <div class="card-body">
+                <h5 class="card-title">Total Devices</h5>
+                <h2 class="display-4">@deviceCount</h2>
+                <p class="card-text">Registered devices</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card text-white bg-success mb-3">
+            <div class="card-body">
+                <h5 class="card-title">Sensor Readings</h5>
+                <h2 class="display-4">@readingCount</h2>
+                <p class="card-text">Total readings stored</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card text-white bg-info mb-3">
+            <div class="card-body">
+                <h5 class="card-title">Latest Reading</h5>
+                <h2 class="display-4">@latestTemp°C</h2>
+                <p class="card-text">Current temperature</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row mt-3">
+    <div class="col-12">
+        <h3>Quick Actions</h3>
+        <div class="btn-group" role="group">
+            <button class="btn btn-primary" @onclick='() => NavigateTo("devices")'>Manage Devices</button>
+            <button class="btn btn-success" @onclick='() => NavigateTo("readings")'>View Readings</button>
+        </div>
+    </div>
+</div>
+
+@if (recentReadings != null && recentReadings.Count > 0)
+{
+    <div class="row mt-4">
+        <div class="col-12">
+            <h3>Recent Sensor Readings</h3>
+            <table class="table table-striped">
+                <thead>
+                    <tr>
+                        <th>Device ID</th>
+                        <th>Temperature</th>
+                        <th>Humidity</th>
+                        <th>Air Quality</th>
+                        <th>Timestamp</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var reading in recentReadings.Take(5))
+                    {
+                        <tr>
+                            <td>@reading.DeviceId</td>
+                            <td>@reading.TemperatureDisplay</td>
+                            <td>@reading.HumidityDisplay</td>
+                            <td>@reading.AirQualityDisplay</td>
+                            <td>@reading.DisplayTimestamp</td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    </div>
+}
+
+@code {
+    private int deviceCount = 0;
+    private int readingCount = 0;
+    private string latestTemp = "--";
+    private List<SensorReading>? recentReadings;
+
+    [Inject]
+    private NavigationManager? NavigationManager { get; set; }
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadDashboardData();
+    }
+
+    private async Task LoadDashboardData()
+    {
+        var devices = await DeviceRepository.GetAllAsync();
+        deviceCount = devices.Count;
+
+        recentReadings = await SensorRepository.GetAllAsync();
+        readingCount = recentReadings.Count;
+
+        if (recentReadings.Count > 0)
+        {
+            latestTemp = recentReadings[0].Temperature.ToString("F1");
+        }
+    }
+
+    private void NavigateTo(string page)
+    {
+        NavigationManager?.NavigateTo(page);
+    }
+}

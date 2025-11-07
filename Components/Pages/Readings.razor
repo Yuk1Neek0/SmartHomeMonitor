@@ -1,0 +1,200 @@
+@page "/readings"
+@using SmartHomeMonitor.Models
+@using SmartHomeMonitor.Services
+@inject IRepository<SensorReading> ReadingRepository
+
+<PageTitle>Sensor Readings - Smart Home Monitor</PageTitle>
+
+<h1>Sensor Readings</h1>
+<p class="lead">View environmental data from all sensors</p>
+
+<div class="row mt-3">
+    <div class="col-12">
+        <div class="btn-group mb-3" role="group">
+            <button class="btn btn-success btn-lg" @onclick="AddTestReading">
+                ➕ Add Test Reading
+            </button>
+            <button class="btn btn-warning" @onclick="ClearAllReadings">
+                Clear All Data
+            </button>
+        </div>
+    </div>
+</div>
+
+<div class="alert alert-primary">
+    <h5>📊 Check-In 1 - Database Persistence Proof</h5>
+    <ol class="mb-0">
+        <li>Click "Add Test Reading" to create a new sensor reading</li>
+        <li>Observe the reading appear in the table below</li>
+        <li><strong>Close this application completely</strong></li>
+        <li>Relaunch the application</li>
+        <li>Navigate back to "Sensor Readings"</li>
+        <li>✅ The data will still be here - proving SQLite persistence!</li>
+    </ol>
+</div>
+
+@if (!string.IsNullOrEmpty(statusMessage))
+{
+    <div class="alert alert-info alert-dismissible fade show" role="alert">
+        <strong>@statusMessage</strong>
+        <button type="button" class="btn-close" @onclick="() => statusMessage = null"></button>
+    </div>
+}
+
+@if (readings == null)
+{
+    <p><em>Loading sensor readings...</em></p>
+}
+else if (readings.Count == 0)
+{
+    <div class="alert alert-warning">
+        <h4>No readings recorded yet</h4>
+        <p>Click "Add Test Reading" to create sample sensor data for demonstration purposes.</p>
+        <p class="mb-0"><strong>This button creates realistic environmental readings stored in the local SQLite database.</strong></p>
+    </div>
+}
+else
+{
+    <h3>All Sensor Readings (@readings.Count total)</h3>
+
+    <div class="row mb-3">
+        <div class="col-md-3">
+            <div class="card border-danger">
+                <div class="card-body">
+                    <h6 class="card-subtitle mb-2 text-muted">Average Temperature</h6>
+                    <h4 class="text-danger">@avgTemp°C</h4>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card border-primary">
+                <div class="card-body">
+                    <h6 class="card-subtitle mb-2 text-muted">Average Humidity</h6>
+                    <h4 class="text-primary">@avgHumidity%</h4>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card border-success">
+                <div class="card-body">
+                    <h6 class="card-subtitle mb-2 text-muted">Average Air Quality</h6>
+                    <h4 class="text-success">@avgAirQuality</h4>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card border-info">
+                <div class="card-body">
+                    <h6 class="card-subtitle mb-2 text-muted">Total Readings</h6>
+                    <h4 class="text-info">@readings.Count</h4>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="table-responsive">
+        <table class="table table-striped table-hover">
+            <thead class="table-dark">
+                <tr>
+                    <th>ID</th>
+                    <th>Device ID</th>
+                    <th>🌡️ Temperature</th>
+                    <th>💧 Humidity</th>
+                    <th>🌫️ Air Quality</th>
+                    <th>📅 Timestamp</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var reading in readings)
+                {
+                    <tr>
+                        <td>@reading.ReadingId</td>
+                        <td>@reading.DeviceId</td>
+                        <td>
+                            <span class="badge @GetTempBadge(reading.Temperature)">
+                                @reading.TemperatureDisplay
+                            </span>
+                        </td>
+                        <td>@reading.HumidityDisplay</td>
+                        <td>
+                            <span class="badge @GetAirQualityBadge(reading.AirQuality)">
+                                @reading.AirQualityDisplay
+                            </span>
+                        </td>
+                        <td>@reading.DisplayTimestamp</td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+}
+
+@code {
+    private List<SensorReading>? readings;
+    private string? statusMessage;
+    private string avgTemp = "--";
+    private string avgHumidity = "--";
+    private string avgAirQuality = "--";
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadReadings();
+    }
+
+    private async Task LoadReadings()
+    {
+        readings = await ReadingRepository.GetAllAsync();
+        CalculateAverages();
+        statusMessage = null;
+    }
+
+    private void CalculateAverages()
+    {
+        if (readings != null && readings.Count > 0)
+        {
+            avgTemp = readings.Average(r => r.Temperature).ToString("F1");
+            avgHumidity = readings.Average(r => r.Humidity).ToString("F1");
+            avgAirQuality = readings.Average(r => r.AirQuality).ToString("F0");
+        }
+    }
+
+    private async Task AddTestReading()
+    {
+        var random = Random.Shared;
+        var newReading = new SensorReading
+        {
+            DeviceId = random.Next(1, 5),
+            Temperature = Math.Round(15 + random.NextDouble() * 15, 1), // 15-30°C
+            Humidity = Math.Round(30 + random.NextDouble() * 50, 1),    // 30-80%
+            AirQuality = Math.Round(50 + random.NextDouble() * 100, 0), // 50-150
+            Timestamp = DateTime.Now
+        };
+
+        await ReadingRepository.InsertAsync(newReading);
+        await LoadReadings();
+
+        statusMessage = $"✅ New reading added! Temp: {newReading.TemperatureDisplay}, Humidity: {newReading.HumidityDisplay}, Air Quality: {newReading.AirQualityDisplay}";
+    }
+
+    private async Task ClearAllReadings()
+    {
+        await ReadingRepository.DeleteAllAsync();
+        await LoadReadings();
+        statusMessage = "🗑️ All readings have been cleared from the database.";
+    }
+
+    private string GetTempBadge(double temp)
+    {
+        if (temp < 18) return "bg-primary";
+        if (temp < 24) return "bg-success";
+        if (temp < 28) return "bg-warning";
+        return "bg-danger";
+    }
+
+    private string GetAirQualityBadge(double quality)
+    {
+        if (quality > 100) return "bg-success";
+        if (quality > 70) return "bg-warning";
+        return "bg-danger";
+    }
+}
