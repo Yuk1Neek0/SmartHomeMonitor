@@ -26,13 +26,13 @@ jobs:
     - name: Install .NET MAUI workload
       run: dotnet workload install maui
 
-    # Step 4: Restore dependencies for Android only (most compatible)
+    # Step 4: Restore dependencies
     - name: Restore NuGet packages
-      run: dotnet restore SmartHomeMonitor.csproj --framework net9.0-android
+      run: dotnet restore SmartHomeMonitor.csproj
 
     # Step 5: Build solution for Android (Release mode)
     - name: Build solution (Release mode)
-      run: dotnet build SmartHomeMonitor.csproj --configuration Release --no-restore --framework net9.0-android
+      run: dotnet build SmartHomeMonitor.csproj --configuration Release --framework net9.0-android
       continue-on-error: false
 
     # Step 6: Upload build artifacts
