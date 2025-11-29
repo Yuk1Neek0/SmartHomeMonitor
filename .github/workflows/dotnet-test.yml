@@ -26,13 +26,13 @@ jobs:
     - name: Install .NET MAUI workload
       run: dotnet workload install maui
 
-    # Step 4: Restore dependencies
+    # Step 4: Restore dependencies with Windows runtime
     - name: Restore NuGet packages
-      run: dotnet restore SmartHomeMonitor.csproj
+      run: dotnet restore SmartHomeMonitor.csproj -r win-x64
 
     # Step 5: Build solution for Windows only
     - name: Build solution
-      run: dotnet build SmartHomeMonitor.csproj --configuration Release --no-restore --framework net9.0-windows10.0.19041.0
+      run: dotnet build SmartHomeMonitor.csproj --configuration Release --no-restore --framework net9.0-windows10.0.19041.0 -r win-x64
 
     # Step 6: Run unit tests
     - name: Run unit tests
