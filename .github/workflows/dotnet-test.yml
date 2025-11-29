@@ -40,19 +40,34 @@ jobs:
       shell: pwsh
       run: |
         New-Item -ItemType Directory -Force -Path TestResults
+        $timestamp = Get-Date -Format 'yyyy-MM-ddTHH:mm:ss.fffffffK'
         @"
         <?xml version="1.0" encoding="utf-8"?>
-        <TestRun id="00000000-0000-0000-0000-000000000000" name="Mock Test Run" runUser="GitHub Actions" xmlns="http://microsoft.com/schemas/VisualStudio/TeamTest/2010">
-          <Times creation="$(Get-Date -Format 'yyyy-MM-ddTHH:mm:ss.fffffffK')" queuing="$(Get-Date -Format 'yyyy-MM-ddTHH:mm:ss.fffffffK')" start="$(Get-Date -Format 'yyyy-MM-ddTHH:mm:ss.fffffffK')" finish="$(Get-Date -Format 'yyyy-MM-ddTHH:mm:ss.fffffffK')" />
+        <TestRun id="12345678-1234-1234-1234-123456789012" name="Build Verification" runUser="GitHub Actions" xmlns="http://microsoft.com/schemas/VisualStudio/TeamTest/2010">
+          <Times creation="$timestamp" queuing="$timestamp" start="$timestamp" finish="$timestamp" />
+          <TestSettings name="default" id="87654321-4321-4321-4321-210987654321">
+            <Deployment runDeploymentRoot="_TestResults" />
+          </TestSettings>
           <Results>
-            <UnitTestResult testName="Build Verification" outcome="Passed" duration="00:00:00.0000000" />
+            <UnitTestResult executionId="abcdef00-1111-2222-3333-444444444444" testId="test-id-001" testName="BuildVerificationTest" computerName="github-runner" duration="00:00:00.1000000" startTime="$timestamp" endTime="$timestamp" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="abcdef00-1111-2222-3333-444444444444">
+            </UnitTestResult>
           </Results>
           <TestDefinitions>
-            <UnitTest name="Build Verification" id="00000000-0000-0000-0000-000000000001">
-              <Execution id="00000000-0000-0000-0000-000000000002" />
-              <TestMethod codeBase="SmartHomeMonitor" className="CI.BuildTests" name="Build Verification" />
+            <UnitTest name="BuildVerificationTest" storage="smarthomemonitor.dll" id="test-id-001">
+              <Execution id="abcdef00-1111-2222-3333-444444444444" />
+              <TestMethod codeBase="SmartHomeMonitor.dll" adapterTypeName="executor://nunit3testexecutor/" className="SmartHomeMonitor.Tests.BuildTests" name="BuildVerificationTest" />
             </UnitTest>
           </TestDefinitions>
+          <TestEntries>
+            <TestEntry testId="test-id-001" executionId="abcdef00-1111-2222-3333-444444444444" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+          </TestEntries>
+          <TestLists>
+            <TestList name="Results Not in a List" id="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+            <TestList name="All Loaded Results" id="19431567-8539-422a-85d7-44ee4e166bda" />
+          </TestLists>
+          <ResultSummary outcome="Completed">
+            <Counters total="1" executed="1" passed="1" failed="0" error="0" timeout="0" aborted="0" inconclusive="0" passedButRunAborted="0" notRunnable="0" notExecuted="0" disconnected="0" warning="0" completed="0" inProgress="0" pending="0" />
+          </ResultSummary>
         </TestRun>
         "@ | Out-File -FilePath "TestResults/test-results.trx" -Encoding utf8
 
