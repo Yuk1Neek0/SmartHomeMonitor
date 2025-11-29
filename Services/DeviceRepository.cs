@@ -9,7 +9,7 @@ namespace SmartHomeMonitor.Services
 {
     public class DeviceRepository : IRepository<Models.Device>
     {
-        private SQLiteAsyncConnection _database;
+        private SQLiteAsyncConnection? _database;
         private readonly string _databasePath;
 
         public DeviceRepository()

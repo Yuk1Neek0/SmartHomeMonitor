@@ -30,9 +30,9 @@ jobs:
     - name: Restore NuGet packages
       run: dotnet restore SmartHomeMonitor.csproj
 
-    # Step 5: Build solution in Release mode
+    # Step 5: Build solution for Windows only (Release mode)
     - name: Build solution (Release mode)
-      run: dotnet build SmartHomeMonitor.csproj --configuration Release --no-restore
+      run: dotnet build SmartHomeMonitor.csproj --configuration Release --no-restore --framework net9.0-windows10.0.19041.0
 
     # Step 6: Upload build artifacts
     - name: Upload build artifacts
@@ -40,5 +40,5 @@ jobs:
       with:
         name: build-output
         path: |
-          **/bin/Release/**
+          **/bin/Release/net9.0-windows10.0.19041.0/**
           !**/bin/Release/**/ref/**
