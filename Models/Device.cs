@@ -22,5 +22,15 @@ namespace SmartHomeMonitor.Models
         public bool IsActive { get; set; } = true;
 
         public DateTime RegisteredAt { get; set; } = DateTime.Now;
+
+        // Geolocation properties
+        public double? Latitude { get; set; }
+
+        public double? Longitude { get; set; }
+
+        [Ignore]
+        public string LocationDisplay => Latitude.HasValue && Longitude.HasValue
+            ? $"{Latitude:F6}, {Longitude:F6}"
+            : "Not set";
     }
 }
