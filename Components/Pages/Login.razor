@@ -60,7 +60,7 @@
                                    autofocus />
                         </div>
 
-                        <button class="btn btn-success btn-lg w-100 mb-2" @onclick="Login" disabled="@(pin.Length != 4)">
+                        <button class="btn btn-success btn-lg w-100 mb-2" @onclick="ValidateAndLogin" disabled="@(pin.Length != 4)">
                             Unlock
                         </button>
 
@@ -139,7 +139,7 @@
         }
     }
 
-    private async Task Login()
+    private async Task ValidateAndLogin()
     {
         if (DateTime.Now < lockoutUntil)
         {
@@ -177,7 +177,7 @@
     {
         if (e.Key == "Enter" && pin.Length == 4)
         {
-            await Login();
+            await ValidateAndLogin();
         }
     }
 
