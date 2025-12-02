@@ -27,6 +27,10 @@ public static class MauiProgram
 		builder.Services.AddSingleton<IRepository<SensorReading>, SensorReadingRepository>();
 		builder.Services.AddSingleton<IRepository<Models.Device>, DeviceRepository>();
 
+		// Register Application Services
+		builder.Services.AddSingleton<GeolocationService>();
+		builder.Services.AddSingleton<AuthenticationService>();
+
 		return builder.Build();
 	}
 }

@@ -1,0 +1,193 @@
+@page "/login"
+@using SmartHomeMonitor.Services
+@inject AuthenticationService AuthService
+@inject NavigationManager Navigation
+
+<PageTitle>Login - Smart Home Monitor</PageTitle>
+
+<div class="container">
+    <div class="row justify-content-center mt-5">
+        <div class="col-md-6 col-lg-4">
+            <div class="card shadow">
+                <div class="card-body">
+                    <h2 class="card-title text-center mb-4">🔒 Smart Home Monitor</h2>
+
+                    @if (!isPinSetup)
+                    {
+                        <div class="alert alert-info">
+                            <strong>Welcome!</strong> Please set up your 4-digit PIN to secure your smart home data.
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label">Create PIN (4 digits)</label>
+                            <input type="password" class="form-control form-control-lg text-center"
+                                   @bind="pin"
+                                   @bind:event="oninput"
+                                   maxlength="4"
+                                   placeholder="••••"
+                                   inputmode="numeric"
+                                   pattern="[0-9]*" />
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label">Confirm PIN</label>
+                            <input type="password" class="form-control form-control-lg text-center"
+                                   @bind="confirmPin"
+                                   @bind:event="oninput"
+                                   maxlength="4"
+                                   placeholder="••••"
+                                   inputmode="numeric"
+                                   pattern="[0-9]*" />
+                        </div>
+
+                        <button class="btn btn-primary btn-lg w-100" @onclick="SetupPin" disabled="@(pin.Length != 4 || confirmPin.Length != 4)">
+                            Setup PIN
+                        </button>
+                    }
+                    else
+                    {
+                        <p class="text-center text-muted mb-3">Enter your PIN to access the app</p>
+
+                        <div class="mb-4">
+                            <input type="password" class="form-control form-control-lg text-center"
+                                   @bind="pin"
+                                   @bind:event="oninput"
+                                   @onkeyup="HandleKeyPress"
+                                   maxlength="4"
+                                   placeholder="••••"
+                                   inputmode="numeric"
+                                   pattern="[0-9]*"
+                                   autofocus />
+                        </div>
+
+                        <button class="btn btn-success btn-lg w-100 mb-2" @onclick="ValidateAndLogin" disabled="@(pin.Length != 4)">
+                            Unlock
+                        </button>
+
+                        @if (failedAttempts > 0)
+                        {
+                            <div class="alert alert-danger">
+                                ❌ Incorrect PIN! @(3 - failedAttempts) attempts remaining.
+                                @if (failedAttempts >= 3)
+                                {
+                                    <br/><strong>Locked for 30 seconds!</strong>
+                                }
+                            </div>
+                        }
+
+                        <small class="text-muted d-block text-center mt-3">
+                            <a href="#" @onclick="ResetApp" @onclick:preventDefault>Reset App (for testing)</a>
+                        </small>
+                    }
+
+                    @if (!string.IsNullOrEmpty(message))
+                    {
+                        <div class="alert alert-info mt-3">
+                            @message
+                        </div>
+                    }
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@code {
+    private string pin = "";
+    private string confirmPin = "";
+    private string message = "";
+    private bool isPinSetup = false;
+    private int failedAttempts = 0;
+    private DateTime lockoutUntil = DateTime.MinValue;
+
+    protected override async Task OnInitializedAsync()
+    {
+        isPinSetup = await AuthService.IsPinSetupAsync();
+
+        // Check if already authenticated
+        if (await AuthService.IsAuthenticatedAsync())
+        {
+            Navigation.NavigateTo("/");
+        }
+    }
+
+    private async Task SetupPin()
+    {
+        if (pin != confirmPin)
+        {
+            message = "PINs do not match!";
+            return;
+        }
+
+        if (pin.Length != 4 || !pin.All(char.IsDigit))
+        {
+            message = "PIN must be 4 digits!";
+            return;
+        }
+
+        var success = await AuthService.SetupPinAsync(pin);
+        if (success)
+        {
+            message = "PIN setup successful! Please enter your PIN to login.";
+            isPinSetup = true;
+            pin = "";
+            confirmPin = "";
+        }
+        else
+        {
+            message = "Failed to setup PIN. Please try again.";
+        }
+    }
+
+    private async Task ValidateAndLogin()
+    {
+        if (DateTime.Now < lockoutUntil)
+        {
+            message = $"Locked! Try again in {(lockoutUntil - DateTime.Now).Seconds} seconds.";
+            return;
+        }
+
+        var success = await AuthService.ValidatePinAsync(pin);
+
+        if (success)
+        {
+            message = "✅ Login successful!";
+            failedAttempts = 0;
+            await Task.Delay(500);
+            Navigation.NavigateTo("/");
+        }
+        else
+        {
+            failedAttempts++;
+            pin = "";
+
+            if (failedAttempts >= 3)
+            {
+                lockoutUntil = DateTime.Now.AddSeconds(30);
+                message = "Too many failed attempts! Locked for 30 seconds.";
+            }
+            else
+            {
+                message = $"Incorrect PIN! {3 - failedAttempts} attempts remaining.";
+            }
+        }
+    }
+
+    private async Task HandleKeyPress(KeyboardEventArgs e)
+    {
+        if (e.Key == "Enter" && pin.Length == 4)
+        {
+            await ValidateAndLogin();
+        }
+    }
+
+    private void ResetApp()
+    {
+        AuthService.ClearAll();
+        message = "App data cleared! Refresh the page to start over.";
+        isPinSetup = false;
+        pin = "";
+        confirmPin = "";
+        failedAttempts = 0;
+    }
+}

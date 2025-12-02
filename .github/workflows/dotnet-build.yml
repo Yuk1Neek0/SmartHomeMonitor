@@ -1,0 +1,45 @@
+name: Build Only Pipeline
+
+on:
+  push:
+    branches: [ main, master ]
+  pull_request:
+    branches: [ main, master ]
+
+jobs:
+  build:
+    name: Build Solution
+    runs-on: windows-latest
+
+    steps:
+    # Step 1: Checkout source code
+    - name: Checkout repository
+      uses: actions/checkout@v4
+
+    # Step 2: Setup .NET SDK
+    - name: Setup .NET 9.0
+      uses: actions/setup-dotnet@v4
+      with:
+        dotnet-version: '9.0.x'
+
+    # Step 3: Install MAUI workload
+    - name: Install .NET MAUI workload
+      run: dotnet workload install maui
+
+    # Step 4: Restore dependencies
+    - name: Restore NuGet packages
+      run: dotnet restore SmartHomeMonitor.csproj
+
+    # Step 5: Build solution for Android (Release mode)
+    - name: Build solution (Release mode)
+      run: dotnet build SmartHomeMonitor.csproj --configuration Release --framework net9.0-android
+      continue-on-error: false
+
+    # Step 6: Upload build artifacts
+    - name: Upload build artifacts
+      uses: actions/upload-artifact@v4
+      with:
+        name: build-output
+        path: |
+          **/bin/Release/net9.0-windows10.0.19041.0/**
+          !**/bin/Release/**/ref/**

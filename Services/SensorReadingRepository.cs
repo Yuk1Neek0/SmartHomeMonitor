@@ -9,7 +9,7 @@ namespace SmartHomeMonitor.Services
 {
     public class SensorReadingRepository : IRepository<SensorReading>
     {
-        private SQLiteAsyncConnection _database;
+        private SQLiteAsyncConnection? _database;
         private readonly string _databasePath;
 
         public SensorReadingRepository()

@@ -2,6 +2,7 @@
 @using SmartHomeMonitor.Models
 @using SmartHomeMonitor.Services
 @inject IRepository<Device> DeviceRepository
+@inject GeolocationService GeolocationService
 
 <PageTitle>Devices - Smart Home Monitor</PageTitle>
 
@@ -10,9 +11,21 @@
 
 <div class="row mt-3">
     <div class="col-12">
-        <button class="btn btn-primary mb-3" @onclick="AddTestDevice">
-            Add Test Device
-        </button>
+        <div class="btn-group mb-3">
+            <button class="btn btn-primary" @onclick="AddTestDevice">
+                Add Test Device
+            </button>
+            <button class="btn btn-success" @onclick="AddDeviceWithGPS" disabled="@isGettingLocation">
+                @if (isGettingLocation)
+                {
+                    <span>📍 Getting Location...</span>
+                }
+                else
+                {
+                    <span>📍 Add Device with GPS</span>
+                }
+            </button>
+        </div>
     </div>
 </div>
 
@@ -44,6 +57,7 @@ else
                     <th>Name</th>
                     <th>Location</th>
                     <th>Type</th>
+                    <th>GPS Coordinates</th>
                     <th>Status</th>
                     <th>Registered</th>
                 </tr>
@@ -56,6 +70,16 @@ else
                         <td><strong>@device.DeviceName</strong></td>
                         <td>@device.Location</td>
                         <td>@device.DeviceType</td>
+                        <td>
+                            @if (device.Latitude.HasValue && device.Longitude.HasValue)
+                            {
+                                <small class="text-muted">@device.LocationDisplay</small>
+                            }
+                            else
+                            {
+                                <span class="text-muted">-</span>
+                            }
+                        </td>
                         <td>
                             @if (device.IsActive)
                             {
@@ -78,6 +102,7 @@ else
     private List<Device>? devices;
     private string? statusMessage;
     private int deviceCounter = 1;
+    private bool isGettingLocation = false;
 
     protected override async Task OnInitializedAsync()
     {
@@ -107,6 +132,42 @@ else
 
         deviceCounter++;
         statusMessage = $"Device '{newDevice.DeviceName}' added successfully!";
+    }
+
+    private async Task AddDeviceWithGPS()
+    {
+        isGettingLocation = true;
+        statusMessage = "Getting GPS location...";
+        StateHasChanged();
+
+        var (latitude, longitude, message) = await GeolocationService.GetCurrentLocationAsync();
+
+        var newDevice = new Device
+        {
+            UserId = 1,
+            DeviceName = $"Sensor-{deviceCounter:D3}",
+            Location = GetRandomLocation(),
+            DeviceType = GetRandomDeviceType(),
+            IsActive = true,
+            RegisteredAt = DateTime.Now,
+            Latitude = latitude,
+            Longitude = longitude
+        };
+
+        await DeviceRepository.InsertAsync(newDevice);
+        await LoadDevices();
+
+        deviceCounter++;
+        isGettingLocation = false;
+
+        if (latitude.HasValue && longitude.HasValue)
+        {
+            statusMessage = $"✅ Device '{newDevice.DeviceName}' added with GPS: {newDevice.LocationDisplay}";
+        }
+        else
+        {
+            statusMessage = $"⚠️ Device '{newDevice.DeviceName}' added but GPS failed: {message}";
+        }
     }
 
     private string GetRandomLocation()
