@@ -22,7 +22,6 @@ namespace SmartHomeMonitor.Services
         {
             if (_database != null)
                 return;
-
             _database = new SQLiteAsyncConnection(_databasePath);
             await _database.CreateTableAsync<Models.Device>();
         }
